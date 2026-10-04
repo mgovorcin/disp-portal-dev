@@ -16,7 +16,8 @@ vertical/east decomposition.
 |---|---|---|
 | Time series from ASF, model fits, PNG/CSV export | ✅ | ✅ |
 | OPERA frames in view, search, draw / annotate, roads · geology · 3D buildings demo | ✅ | ✅ |
-| ASF velocity overview, identify, layer analysis | – (ASF tiles load only from ASF's own site) | ✅ |
+| ASF velocity overview (asc/desc) | ✅ mirrored up to zoom 9 (~300 m), refreshed monthly | ✅ full resolution (zoom 12, ~38 m) |
+| Identify velocity on click, layer analysis | – | ✅ |
 | Subset downloads → GeoZarr / COG, merge + vertical/east (beta), whole-frame products | – | ✅ |
 
 The static site can also use a proxy running on your machine: start `disp-proxy` (below) and enter
@@ -262,7 +263,9 @@ Tiles are cached under `.cache/tiles/` when a `TileFetcher(cache_dir=...)` is us
 [GEOLIBRE_COMMIT](GEOLIBRE_COMMIT)) with the plugin and branding under the site's URL path, then
 writes the static site files (`scripts/write_pages_static.py`): plugin site config
 (`disp-portal.json`), public-use basemaps (OpenFreeMap, OpenStreetMap, EOX Sentinel-2 cloudless),
-the demo project, `deployment.json` and a service-worker kill switch. The
+the demo project, `deployment.json` and a service-worker kill switch. `scripts/mirror_overview_tiles.py`
+mirrors the ASF velocity overview (z2–9, ~0.4 GB) into the site, because ASF's tile server only
+allows its own portal to read the tiles from a browser. The
 [Pages workflow](.github/workflows/pages.yml) runs it on every push to `main`.
 
 ## Credits

@@ -2,7 +2,8 @@
 
 Writes into the built GeoLibre directory:
 
-- ``disp-portal.json``  site config read by the OPERA DISP plugin: static mode, basemaps, demo project
+- ``disp-portal.json``  site config read by the OPERA DISP plugin: static mode, basemaps, demo project,
+  and the mirrored velocity overview when ``<out>/overview`` exists (scripts/mirror_overview_tiles.py)
 - ``basemaps/*.json``   raster basemap styles (vector ones point straight at OpenFreeMap)
 - ``demo/context-layers.geolibre``  roads / geology / 3D buildings demo project
 - ``deployment.json``   GeoLibre deployment policy (OPERA DISP and Annotations on, app name)
@@ -27,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import build_demo_project  # noqa: E402
+import build_demo_project
 
 OPENFREEMAP = "https://tiles.openfreemap.org/styles"
 
@@ -74,6 +75,12 @@ def raster_style(key: str, b: dict) -> dict:
     }
 
 
+def overview_maxzoom(out: Path) -> int:
+    """Highest zoom present in the mirrored overview (scripts/mirror_overview_tiles.py)."""
+    zooms = [int(p.name) for p in (out / "overview" / "asc" / "vel").iterdir() if p.name.isdigit()]
+    return max(zooms) if zooms else 9
+
+
 def write(out: Path) -> None:
     basemaps = []
     for key, (name, url) in VECTOR.items():
@@ -95,6 +102,8 @@ def write(out: Path) -> None:
         "note": "In development; not an official OPERA, JPL or NASA product.",
         "basemaps": basemaps,
         "demoProject": "demo/context-layers.geolibre",
+        **({"overview": {"tiles": "overview/{dir}/vel/{z}/{x}/{y}.png", "extent": "overview/{dir}/extent.json",
+                         "maxzoom": overview_maxzoom(out)}} if (out / "overview").is_dir() else {}),
     }, indent=1))
     (out / "deployment.json").write_text(json.dumps({
         "version": 1,

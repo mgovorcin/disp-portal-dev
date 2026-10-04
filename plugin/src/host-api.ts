@@ -105,6 +105,7 @@ export interface GeoLibreAppAPI {
   addMapControl?: (control: MapControl, position?: "top-left" | "top-right" | "bottom-left" | "bottom-right") => boolean;
   removeMapControl?: (control: MapControl) => void;
   activatePlugin?: (id: string, state?: unknown) => Promise<boolean>;
+  deactivatePlugin?: (id: string) => boolean;
   addCogLayer?: (name: string, url: string, options?: CogLayerOptions) => Promise<string>;
   addZarrLayer?: (name: string, url: string, options: ZarrLayerOptions) => Promise<string>;
   addGeoJsonLayer?: (name: string, data: { type: "FeatureCollection"; features: unknown[] }, sourcePath?: string) => string;

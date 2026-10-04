@@ -384,7 +384,7 @@ export class DispController {
       this.picks.setClients(new TimeseriesClient(s.tsApiUrl), this.asf);
     }
     if (s.proxyUrl !== prev.proxyUrl || s.direction !== prev.direction) {
-      this.layers?.setVelocityTiles(this.proxy.tileTemplate(s.direction));
+      this.applyVelocitySource();
       void this.loadExtent();
       this.scheduleFrames(0);
     }
@@ -423,11 +423,13 @@ export class DispController {
     this.proxyOk = ok;
     // Cube series come from disp-proxy; without it, skip the lookup instead of showing a failed row.
     this.picks.setClients(new TimeseriesClient(this.state.tsApiUrl), this.asf, ok ? new CubeClient(this.state.proxyUrl) : null);
-    // Without a proxy the ASF velocity tiles cannot load (CORS); keep the layer quiet.
-    this.layers?.setVisible(ok && this.state.visible);
+    // Without a proxy the ASF tiles cannot load (CORS): use the site's mirror when it has one.
+    this.applyVelocitySource();
+    this.layers?.setVisible((ok || Boolean(site?.overview)) && this.state.visible);
     this.events.onProxyStatus(ok);
     if (!ok) {
-      this.events.onExtent(null, site?.mode === "static" ? "" : `disp-proxy not reachable at ${this.state.proxyUrl}`);
+      if (site?.overview) void this.loadExtent();
+      else this.events.onExtent(null, site?.mode === "static" ? "" : `disp-proxy not reachable at ${this.state.proxyUrl}`);
       if (site?.basemaps?.length) {
         this.basemaps = site.basemaps;
         this.events.onBasemaps(this.basemaps);
@@ -447,8 +449,26 @@ export class DispController {
     }
   }
 
+  /** True when the velocity overview comes from the static site's mirror (no disp-proxy). */
+  get staticOverview(): boolean {
+    return !this.proxyOk && Boolean(this.site?.overview);
+  }
+
+  private applyVelocitySource(): void {
+    const o = this.site?.overview;
+    if (this.staticOverview && o) this.layers?.setVelocityTiles(o.tiles.replace("{dir}", this.state.direction), o.maxzoom);
+    else this.layers?.setVelocityTiles(this.proxy.tileTemplate(this.state.direction), 12);
+  }
+
   private async loadExtent(): Promise<void> {
     try {
+      const o = this.site?.overview;
+      if (this.staticOverview && o) {
+        const r = await fetch(o.extent.replace("{dir}", this.state.direction), { cache: "no-cache" });
+        if (!r.ok) throw new Error(`overview legend: ${r.status}`);
+        this.events.onExtent((await r.json()) as ExtentInfo);
+        return;
+      }
       this.events.onExtent(await this.proxy.extent(this.state.direction));
     } catch (e) {
       this.events.onExtent(null, String(e));

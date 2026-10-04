@@ -63,3 +63,15 @@ describe("static site", () => {
     expect(cfg.demoProject).toBe("https://mgovorcin.github.io/disp-portal-dev/demo/context-layers.geolibre");
   });
 });
+
+describe("static overview mirror", () => {
+  it("keeps tile placeholders when resolving against the site base", () => {
+    const cfg = resolveSiteConfig(
+      { mode: "static", overview: { tiles: "overview/{dir}/vel/{z}/{x}/{y}.png", extent: "overview/{dir}/extent.json", maxzoom: 9 } },
+      "https://mgovorcin.github.io/disp-portal-dev/",
+    );
+    expect(cfg.overview?.tiles).toBe("https://mgovorcin.github.io/disp-portal-dev/overview/{dir}/vel/{z}/{x}/{y}.png");
+    expect(cfg.overview?.extent).toBe("https://mgovorcin.github.io/disp-portal-dev/overview/{dir}/extent.json");
+    expect(cfg.overview?.maxzoom).toBe(9);
+  });
+});

@@ -24,6 +24,8 @@ const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 export interface LayerOptions {
   velocityTiles: string;
+  /** Highest zoom of the velocity tiles (12 from disp-proxy, lower for a static mirror). */
+  velocityMaxzoom?: number;
   opacity: number;
   visible: boolean;
   labelTiles: string[] | null;
@@ -76,7 +78,7 @@ export class DispMapLayers {
         tiles: [this.options.velocityTiles],
         tileSize: 256,
         minzoom: 2,
-        maxzoom: 12,
+        maxzoom: this.options.velocityMaxzoom ?? 12,
         attribution: "OPERA DISP-S1 velocity: ASF overview (OPERA-DISP-TMS)",
       });
     }
@@ -207,9 +209,20 @@ export class DispMapLayers {
     this.registered.add(IDS.velocity).add(IDS.frames).add(IDS.picks);
   }
 
-  setVelocityTiles(template: string): void {
+  setVelocityTiles(template: string, maxzoom = 12): void {
+    const sameZoom = (this.options.velocityMaxzoom ?? 12) === maxzoom;
     this.options.velocityTiles = template;
-    (this.map.getSource(IDS.velocity) as RasterTileSource | undefined)?.setTiles([template]);
+    this.options.velocityMaxzoom = maxzoom;
+    const source = this.map.getSource(IDS.velocity) as RasterTileSource | undefined;
+    if (!source) return;
+    if (sameZoom) {
+      source.setTiles([template]);
+      return;
+    }
+    // A source's maxzoom is fixed at creation: rebuild the layer with the new range.
+    if (this.map.getLayer(IDS.velocity)) this.map.removeLayer(IDS.velocity);
+    this.map.removeSource(IDS.velocity);
+    this.ensure();
   }
 
   setOpacity(opacity: number): void {

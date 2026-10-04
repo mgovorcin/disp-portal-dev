@@ -888,3 +888,10 @@
 .od-notice[hidden] {
   display: none;
 }
+
+.od-btn.od-toggle[aria-pressed="true"] {
+  border-color: var(--od-accent);
+  background: var(--od-accent-soft);
+  color: var(--od-accent);
+  font-weight: 600;
+}

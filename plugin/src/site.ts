@@ -13,6 +13,8 @@ export interface SiteConfig {
   demoProject?: string;
   /** Short note shown in the sidebar header in static mode. */
   note?: string;
+  /** Mirrored ASF velocity overview (tiles with a "{dir}" placeholder; z ≤ maxzoom, overzoomed beyond). */
+  overview?: { tiles: string; extent: string; maxzoom: number };
 }
 
 /**
@@ -32,6 +34,14 @@ export function resolveSiteConfig(raw: SiteConfig, base: string): SiteConfig {
     ...raw,
     basemaps: raw.basemaps?.map((b) => ({ ...b, style_url: new URL(b.style_url, base).href })),
     demoProject: raw.demoProject ? new URL(raw.demoProject, base).href : undefined,
+    overview: raw.overview
+      ? {
+          ...raw.overview,
+          // Keep the {dir}/{z}/{x}/{y} placeholders unescaped.
+          tiles: decodeURI(new URL(raw.overview.tiles, base).href),
+          extent: decodeURI(new URL(raw.overview.extent, base).href),
+        }
+      : undefined,
   };
 }
 

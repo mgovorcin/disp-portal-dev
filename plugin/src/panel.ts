@@ -27,6 +27,9 @@ export interface PanelActions {
   startDrawing?: () => Promise<boolean>;
   /** Switch on GeoLibre's annotation tools. */
   startAnnotations?: () => Promise<boolean>;
+  /** Switch the drawing / annotation tools off again. */
+  stopDrawing?: () => boolean;
+  stopAnnotations?: () => boolean;
   /** Move the map to a search result. */
   goTo?: (r: SearchResult) => void;
 }
@@ -218,11 +221,26 @@ export function renderPanel(container: HTMLElement, controller: DispController, 
 
   // Map tools: GeoLibre's own drawing and annotation plugins.
   const toolsMessage = el("p", { className: "od-muted" });
-  const toolButton = (label: string, title: string, fn: (() => Promise<boolean>) | undefined, okText: string) => {
-    const b = el("button", { type: "button", className: "od-btn", textContent: label, title, disabled: !fn });
+  // Toggle buttons: first click switches the GeoLibre tool on, second click switches it off.
+  const toolButton = (
+    label: string,
+    title: string,
+    fn: (() => Promise<boolean>) | undefined,
+    okText: string,
+    stop?: () => boolean,
+  ) => {
+    const b = el("button", { type: "button", className: "od-btn od-toggle", textContent: label, title, disabled: !fn });
+    b.setAttribute("aria-pressed", "false");
     b.addEventListener("click", async () => {
+      if (b.getAttribute("aria-pressed") === "true") {
+        const off = stop?.() ?? false;
+        b.setAttribute("aria-pressed", "false");
+        toolsMessage.textContent = off ? `${label} off.` : `${label}: close it from the Plugins menu.`;
+        return;
+      }
       const ok = await fn?.();
-      toolsMessage.textContent = ok ? okText : `Could not start ${label}; open it from the Plugins menu.`;
+      b.setAttribute("aria-pressed", String(Boolean(ok)));
+      toolsMessage.textContent = ok ? `${okText} Click again to switch it off.` : `Could not start ${label}; open it from the Plugins menu.`;
     });
     return b;
   };
@@ -232,8 +250,8 @@ export function renderPanel(container: HTMLElement, controller: DispController, 
     el(
       "div",
       { className: "od-row od-buttons" },
-      toolButton("Draw polygon", "GeoLibre GeoEditor", actions.startDrawing, "Drawing tools on: use the GeoEditor toolbar on the map."),
-      toolButton("Annotations", "GeoLibre Annotations: text, arrows, shapes on the map", actions.startAnnotations, "Annotation tools on: use the Annotations toolbar on the map."),
+      toolButton("Draw polygon", "GeoLibre GeoEditor", actions.startDrawing, "Drawing tools on: use the GeoEditor toolbar on the map.", actions.stopDrawing),
+      toolButton("Annotations", "GeoLibre Annotations: text, arrows, shapes on the map", actions.startAnnotations, "Annotation tools on: use the Annotations toolbar on the map.", actions.stopAnnotations),
     ),
     toolsMessage,
     el("div", { className: "od-group-label", textContent: "Demo" }),
@@ -295,8 +313,12 @@ export function renderPanel(container: HTMLElement, controller: DispController, 
         el("span", {
           textContent:
             (site?.note ? `${site.note} ` : "") +
-            "Time series (ASF), frames, search and map tools work. The velocity overview, identify, layer analysis, " +
-            "downloads and products need disp-proxy: run it locally and enter its URL under Settings.",
+            (site?.overview
+              ? `Velocity overview mirrored from ASF up to zoom ${site.overview.maxzoom} (~300 m). Time series (ASF), frames, ` +
+                "search and map tools work. Full-resolution overview, identify, layer analysis, downloads and products " +
+                "need disp-proxy: run it locally and enter its URL under Settings."
+              : "Time series (ASF), frames, search and map tools work. The velocity overview, identify, layer analysis, " +
+                "downloads and products need disp-proxy: run it locally and enter its URL under Settings."),
         }),
       );
       proxyDot.classList.toggle("od-ok", ok);
@@ -314,7 +336,11 @@ export function renderPanel(container: HTMLElement, controller: DispController, 
       tickLo.textContent = `≤ ${(lo * 1000).toFixed(0)}`;
       tickHi.textContent = `≥ +${(hi * 1000).toFixed(0)} mm/yr`;
       const date = extent.tile_date ? new Date(extent.tile_date).toISOString().slice(0, 10) : "unknown";
-      legendNote.textContent = `Tiles generated ${date} (ASF overview).`;
+      const mirror = (extent as ExtentInfo & { mirror?: { max_zoom: number; mirrored: string } }).mirror;
+      legendNote.textContent = mirror
+        ? `Tiles generated ${date} (ASF overview), mirrored ${mirror.mirrored} up to zoom ${mirror.max_zoom} (~300 m); ` +
+          "run disp-proxy for full resolution."
+        : `Tiles generated ${date} (ASF overview).`;
     },
     onBasemaps: fillBasemaps,
     onFrames: (ids, note) => {

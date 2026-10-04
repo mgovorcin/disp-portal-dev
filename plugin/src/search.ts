@@ -72,6 +72,20 @@ export function renderSearchSection(
   const note = el("p", { className: "od-muted" });
   let controller: AbortController | null = null;
 
+  // After a result is chosen: close the list, keep the place in the box.
+  const choose = (r: SearchResult) => {
+    controller?.abort();
+    results.replaceChildren();
+    note.textContent = "";
+    input.value = r.label.split(",").slice(0, 2).join(",");
+  };
+  input.addEventListener("input", () => {
+    if (!input.value.trim()) {
+      results.replaceChildren();
+      note.textContent = "";
+    }
+  });
+
   const run = async () => {
     const query = input.value.trim();
     if (!query) return;
@@ -86,11 +100,17 @@ export function renderSearchSection(
       results.replaceChildren(
         ...found.map((r) => {
           const go = el("button", { type: "button", className: "od-link", textContent: r.label, title: "Go here" });
-          go.addEventListener("click", () => goTo(r));
+          go.addEventListener("click", () => {
+            goTo(r);
+            choose(r);
+          });
           const li = el("li", {}, go);
           if (addPoint) {
             const pt = el("button", { type: "button", className: "od-btn", textContent: "+ point", title: "Add a time-series point here" });
-            pt.addEventListener("click", () => addPoint(r));
+            pt.addEventListener("click", () => {
+              addPoint(r);
+              choose(r);
+            });
             li.append(pt);
           }
           return li;

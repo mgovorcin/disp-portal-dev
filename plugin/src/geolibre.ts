@@ -142,6 +142,8 @@ export const plugin: GeoLibrePlugin = {
                   () => openFloating(app, PRODUCTS_PANEL_ID),
                 ),
               startDrawing: app.activatePlugin ? () => startDrawing(app) : undefined,
+              stopDrawing: app.deactivatePlugin ? () => app.deactivatePlugin?.(GEO_EDITOR_PLUGIN_ID) ?? false : undefined,
+              stopAnnotations: app.deactivatePlugin ? () => app.deactivatePlugin?.(ANNOTATIONS_PLUGIN_ID) ?? false : undefined,
               startAnnotations: app.activatePlugin
                 ? async () => {
                     controller?.update({ tsOnClick: false });
