@@ -33,7 +33,7 @@ The GitHub Pages site needs no server. Running `disp-proxy` locally adds the res
 | Velocity overview | mirrored to ~150 m (monthly) | full resolution (~38 m) |
 | Time series, fits, exports, context layers | ✅ | ✅ |
 | Click-to-identify, layer analysis | – | ✅ |
-| Subset downloads (GeoZarr / COG), merge + vertical/east (β), products | – | ✅ |
+| Subset downloads (GeoZarr / COG), products | – | ✅ |
 
 The static site can use a local proxy too: start it and enter `http://localhost:8790` under
 **OPERA DISP → Settings**.
@@ -49,7 +49,7 @@ Details, including the conda environment for downloads, are in [Running locally]
 
 - [Running locally](docs/local-setup.md) — setup, `disp-proxy` API, self-hosted GeoLibre build
 - [Plugin features](docs/plugin.md) — everything in the OPERA DISP panel, build and tests
-- [Downloads and products](docs/downloads-and-products.md) — subsets, merge + decomposition, whole-frame velocity
+- [Downloads and products](docs/downloads-and-products.md) — subsets and whole-frame velocity
 - [GitHub Pages build](docs/github-pages.md) — static site and the overview mirror
 - [Plan](docs/PLAN.md) and [prototype notes](docs/PHASE0_NOTES.md)
 
