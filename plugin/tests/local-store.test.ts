@@ -19,3 +19,15 @@ describe("local store", () => {
     expect(loadLocal()).toBeNull();
   });
 });
+
+import { DEFAULTS_VERSION, migrateSnapshot } from "../src/local-store";
+
+describe("defaults migration", () => {
+  it("drops a basemap remembered under the old defaults, once", () => {
+    const old = migrateSnapshot({ state: { basemap: "dark", opacity: 0.5 }, picks: [], reference: null });
+    expect(old.state).toEqual({ opacity: 0.5 });
+    expect(old.defaultsVersion).toBe(DEFAULTS_VERSION);
+    const current = migrateSnapshot({ state: { basemap: "dark" }, picks: [], reference: null, defaultsVersion: DEFAULTS_VERSION });
+    expect(current.state.basemap).toBe("dark");
+  });
+});
