@@ -47,7 +47,8 @@ def webp(content: bytes, quality: int = 90) -> bytes:
     rgba = COLOR_LUT[index].copy()
     rgba[..., 3] = np.where(index == 0, 0, 255)
     buffer = io.BytesIO()
-    Image.fromarray(rgba, "RGBA").save(buffer, format="WEBP", quality=quality, method=6, alpha_quality=100)
+    # method 4: ~8 ms per tile; method 6 is ~90x slower (~0.7 s per tile) for ~3 % smaller files.
+    Image.fromarray(rgba, "RGBA").save(buffer, format="WEBP", quality=quality, method=4, alpha_quality=100)
     return buffer.getvalue()
 
 
@@ -88,7 +89,8 @@ async def mirror_direction(
                 return None
         if r.status_code != 200:
             return None
-        data = webp(r.content) if fmt == "webp" else paletted(r.content)
+        # Encode off the event loop so downloads keep flowing.
+        data = await asyncio.to_thread(webp if fmt == "webp" else paletted, r.content)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
         stats["fetched"] += 1
