@@ -81,6 +81,11 @@ def overview_maxzoom(out: Path) -> int:
     return max(zooms) if zooms else 9
 
 
+def overview_format(out: Path) -> str:
+    info = json.loads((out / "overview" / "asc" / "extent.json").read_text())
+    return info.get("mirror", {}).get("format", "png")
+
+
 def write(out: Path) -> None:
     basemaps = []
     for key, (name, url) in VECTOR.items():
@@ -102,8 +107,9 @@ def write(out: Path) -> None:
         "note": "In development; not an official OPERA, JPL or NASA product.",
         "basemaps": basemaps,
         "demoProject": "demo/context-layers.geolibre",
-        **({"overview": {"tiles": "overview/{dir}/vel/{z}/{x}/{y}.png", "extent": "overview/{dir}/extent.json",
-                         "maxzoom": overview_maxzoom(out)}} if (out / "overview").is_dir() else {}),
+        **({"overview": {"tiles": "overview/{dir}/vel/{z}/{x}/{y}." + overview_format(out),
+                         "extent": "overview/{dir}/extent.json", "maxzoom": overview_maxzoom(out)}}
+           if (out / "overview").is_dir() else {}),
     }, indent=1))
     (out / "deployment.json").write_text(json.dumps({
         "version": 1,

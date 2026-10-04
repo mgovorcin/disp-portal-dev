@@ -314,7 +314,7 @@ export function renderPanel(container: HTMLElement, controller: DispController, 
           textContent:
             (site?.note ? `${site.note} ` : "") +
             (site?.overview
-              ? `Velocity overview mirrored from ASF up to zoom ${site.overview.maxzoom} (~300 m). Time series (ASF), frames, ` +
+              ? `Velocity overview mirrored from ASF up to zoom ${site.overview.maxzoom} (~${Math.round(40075016 / 256 / 2 ** site.overview.maxzoom * 0.87)} m). Time series (ASF), frames, ` +
                 "search and map tools work. Full-resolution overview, identify, layer analysis, downloads and products " +
                 "need disp-proxy: run it locally and enter its URL under Settings."
               : "Time series (ASF), frames, search and map tools work. The velocity overview, identify, layer analysis, " +
@@ -338,7 +338,8 @@ export function renderPanel(container: HTMLElement, controller: DispController, 
       const date = extent.tile_date ? new Date(extent.tile_date).toISOString().slice(0, 10) : "unknown";
       const mirror = (extent as ExtentInfo & { mirror?: { max_zoom: number; mirrored: string } }).mirror;
       legendNote.textContent = mirror
-        ? `Tiles generated ${date} (ASF overview), mirrored ${mirror.mirrored} up to zoom ${mirror.max_zoom} (~300 m); ` +
+        ? `Tiles generated ${date} (ASF overview), mirrored ${mirror.mirrored} up to zoom ${mirror.max_zoom} ` +
+          `(~${Math.round(40075016 / 256 / 2 ** mirror.max_zoom * 0.87)} m); ` +
           "run disp-proxy for full resolution."
         : `Tiles generated ${date} (ASF overview).`;
     },

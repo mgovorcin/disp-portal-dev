@@ -2,17 +2,18 @@
 
 The ASF tiles do not send CORS headers for other sites, so a browser map cannot draw them
 from GitHub Pages. This script fetches them server-side (as disp-proxy does), colours them
-with the ASF ramp and writes paletted PNGs (same size as the originals) plus a legend/extent
-JSON per direction:
+with the ASF ramp and writes WebP tiles (quality 90: ~1/3 of the ASF PNG size, visually the
+same at map scale) plus a legend/extent JSON per direction:
 
-    <out>/overview/{asc,desc}/vel/{z}/{x}/{y}.png
+    <out>/overview/{asc,desc}/vel/{z}/{x}/{y}.webp
     <out>/overview/{asc,desc}/extent.json
 
-Zoom 2..9 (~0.5 GB for both directions; z10 alone would add ~1.2 GB, over the Pages limit).
+Zoom 2..10 (150 m pixels, ~0.55 GB for both directions; zoom 11 would need ~1.7 GB, over the
+1 GB GitHub Pages limit). ``--format png`` writes paletted PNGs instead (lossless, ~3x larger).
 Tiles already present in <out> are kept (CI caches them), missing ones are fetched.
 
 Usage:
-    python scripts/mirror_overview_tiles.py dist-pages [--max-zoom 9] [--refresh]
+    python scripts/mirror_overview_tiles.py dist-pages [--max-zoom 10] [--format webp] [--refresh]
 """
 
 from __future__ import annotations
@@ -37,6 +38,19 @@ NORTH_AMERICA = (-170.0, 5.0, -50.0, 72.0)  # covers every OPERA DISP-S1 frame
 MIN_ZOOM = 2
 
 
+def webp(content: bytes, quality: int = 90) -> bytes:
+    """ASF encoded tile -> RGBA WebP with the ASF ramp (lossy colour, exact transparency)."""
+    byte, alpha = read_png(content)
+    index = byte.astype(np.uint8)
+    if alpha is not None:
+        index = np.where(alpha == 0, 0, index).astype(np.uint8)
+    rgba = COLOR_LUT[index].copy()
+    rgba[..., 3] = np.where(index == 0, 0, 255)
+    buffer = io.BytesIO()
+    Image.fromarray(rgba, "RGBA").save(buffer, format="WEBP", quality=quality, method=6, alpha_quality=100)
+    return buffer.getvalue()
+
+
 def paletted(content: bytes) -> bytes:
     """ASF encoded tile (byte + alpha) -> paletted PNG with the ASF ramp; index 0 transparent."""
     byte, alpha = read_png(content)
@@ -50,13 +64,15 @@ def paletted(content: bytes) -> bytes:
     return buffer.getvalue()
 
 
-async def mirror_direction(client: httpx.AsyncClient, out: Path, short: str, max_zoom: int, refresh: bool) -> dict:
+async def mirror_direction(
+    client: httpx.AsyncClient, out: Path, short: str, max_zoom: int, refresh: bool, fmt: str = "webp"
+) -> dict:
     sem = asyncio.Semaphore(32)
     root = out / "overview" / short / "vel"
     stats = {"fetched": 0, "kept": 0, "bytes": 0}
 
     async def get(tile: mercantile.Tile) -> mercantile.Tile | None:
-        path = root / str(tile.z) / str(tile.x) / f"{tile.y}.png"
+        path = root / str(tile.z) / str(tile.x) / f"{tile.y}.{fmt}"
         if path.exists() and not refresh:
             stats["kept"] += 1
             stats["bytes"] += path.stat().st_size
@@ -72,7 +88,7 @@ async def mirror_direction(client: httpx.AsyncClient, out: Path, short: str, max
                 return None
         if r.status_code != 200:
             return None
-        data = paletted(r.content)
+        data = webp(r.content) if fmt == "webp" else paletted(r.content)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
         stats["fetched"] += 1
@@ -89,33 +105,34 @@ async def mirror_direction(client: httpx.AsyncClient, out: Path, short: str, max
     return {**stats, "tiles_per_zoom": counts}
 
 
-def write_extent(out: Path, short: str, max_zoom: int) -> None:
+def write_extent(out: Path, short: str, max_zoom: int, fmt: str = "webp") -> None:
     info = dict(fetch_extent(DIRECTIONS[short], "vel"))
     # Tile generation date, as disp-proxy reports it (Last-Modified of the extent file).
     info["tile_date"] = httpx.head(extent_url(DIRECTIONS[short], "vel"), timeout=60).headers.get("last-modified")
     lo, hi = info.get("scale_range", {}).get("range", [-0.03, 0.03])
     info["quantization"] = (hi - lo) / 254
     info["legend_colors"] = ramp_css_colors(10)
-    info["mirror"] = {"max_zoom": max_zoom, "mirrored": time.strftime("%Y-%m-%d")}
+    info["mirror"] = {"max_zoom": max_zoom, "mirrored": time.strftime("%Y-%m-%d"), "format": fmt}
     (out / "overview" / short).mkdir(parents=True, exist_ok=True)
     (out / "overview" / short / "extent.json").write_text(json.dumps(info, indent=1))
 
 
-async def main_async(out: Path, max_zoom: int, refresh: bool) -> None:
+async def main_async(out: Path, max_zoom: int, refresh: bool, fmt: str) -> None:
     async with httpx.AsyncClient(timeout=60) as client:
         for short in DIRECTIONS:
-            write_extent(out, short, max_zoom)
-            stats = await mirror_direction(client, out, short, max_zoom, refresh)
+            write_extent(out, short, max_zoom, fmt)
+            stats = await mirror_direction(client, out, short, max_zoom, refresh, fmt)
             print(f"{short}: fetched {stats['fetched']}, kept {stats['kept']}, {stats['bytes'] / 1e6:.0f} MB", flush=True)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("out", type=Path)
-    parser.add_argument("--max-zoom", type=int, default=9)
+    parser.add_argument("--max-zoom", type=int, default=10)
+    parser.add_argument("--format", choices=["webp", "png"], default="webp")
     parser.add_argument("--refresh", action="store_true", help="re-download tiles already present")
     args = parser.parse_args()
-    asyncio.run(main_async(args.out, args.max_zoom, args.refresh))
+    asyncio.run(main_async(args.out, args.max_zoom, args.refresh, args.format))
 
 
 if __name__ == "__main__":

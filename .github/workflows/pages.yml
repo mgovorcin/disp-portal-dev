@@ -20,7 +20,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       NODE_OPTIONS: --max-old-space-size=7168
     steps:
@@ -46,13 +46,13 @@ jobs:
       - name: Cache mirrored ASF overview tiles (refreshed monthly)
         uses: actions/cache@v4
         with:
-          path: .cache/overview-mirror
-          key: overview-${{ github.run_id }}
-          restore-keys: overview-
+          path: .cache/overview-webp
+          key: overview-webp-${{ github.run_id }}
+          restore-keys: overview-webp-
 
       - name: Monthly refresh of the overview mirror
         if: github.event_name == 'schedule'
-        run: rm -rf .cache/overview-mirror
+        run: rm -rf .cache/overview-webp
 
       - name: Plugin dependencies and tests
         working-directory: plugin

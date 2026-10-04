@@ -16,7 +16,7 @@ vertical/east decomposition.
 |---|---|---|
 | Time series from ASF, model fits, PNG/CSV export | ✅ | ✅ |
 | OPERA frames in view, search, draw / annotate, roads · geology · 3D buildings demo | ✅ | ✅ |
-| ASF velocity overview (asc/desc) | ✅ mirrored up to zoom 9 (~300 m), refreshed monthly | ✅ full resolution (zoom 12, ~38 m) |
+| ASF velocity overview (asc/desc) | ✅ mirrored up to zoom 10 (~150 m, WebP), refreshed monthly | ✅ full resolution (zoom 12, ~38 m) |
 | Identify velocity on click, layer analysis | – | ✅ |
 | Subset downloads → GeoZarr / COG, merge + vertical/east (beta), whole-frame products | – | ✅ |
 
@@ -264,7 +264,7 @@ Tiles are cached under `.cache/tiles/` when a `TileFetcher(cache_dir=...)` is us
 writes the static site files (`scripts/write_pages_static.py`): plugin site config
 (`disp-portal.json`), public-use basemaps (OpenFreeMap, OpenStreetMap, EOX Sentinel-2 cloudless),
 the demo project, `deployment.json` and a service-worker kill switch. `scripts/mirror_overview_tiles.py`
-mirrors the ASF velocity overview (z2–9, ~0.4 GB) into the site, because ASF's tile server only
+mirrors the ASF velocity overview (z2–10 as WebP, ~0.55 GB) into the site, because ASF's tile server only
 allows its own portal to read the tiles from a browser. The
 [Pages workflow](.github/workflows/pages.yml) runs it on every push to `main`.
 
