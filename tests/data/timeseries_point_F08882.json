@@ -1,0 +1,72 @@
+{
+ "OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20161009T002623Z_v1.0_20251023T225404Z.nc": {
+  "netcdf_uri": "s3://asf-cumulus-prod-opera-products/OPERA_L3_DISP-S1_V1/OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20161009T002623Z_v1.0_20251023T225404Z/OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20161009T002623Z_v1.0_20251023T225404Z.nc",
+  "bytes": 444596224.0,
+  "reference_datetime": "2016-09-27T00:26:23.489",
+  "secondary_datetime": "2016-10-09T00:26:23.470",
+  "temporal_baseline": 12.0,
+  "short_wavelength_displacement": -0.0048437119,
+  "x": 267915.0,
+  "y": 3293505.0
+ },
+ "OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20161021T002623Z_v1.0_20251023T225404Z.nc": {
+  "netcdf_uri": "s3://asf-cumulus-prod-opera-products/OPERA_L3_DISP-S1_V1/OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20161021T002623Z_v1.0_20251023T225404Z/OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20161021T002623Z_v1.0_20251023T225404Z.nc",
+  "bytes": 444596224.0,
+  "reference_datetime": "2016-09-27T00:26:23.489",
+  "secondary_datetime": "2016-10-21T00:26:23.357",
+  "temporal_baseline": 24.0,
+  "short_wavelength_displacement": 7.1125e-06,
+  "x": 267915.0,
+  "y": 3293505.0
+ },
+ "OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20161102T002623Z_v1.0_20251023T225404Z.nc": {
+  "netcdf_uri": "s3://asf-cumulus-prod-opera-products/OPERA_L3_DISP-S1_V1/OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20161102T002623Z_v1.0_20251023T225404Z/OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20161102T002623Z_v1.0_20251023T225404Z.nc",
+  "bytes": 444596224.0,
+  "reference_datetime": "2016-09-27T00:26:23.489",
+  "secondary_datetime": "2016-11-02T00:26:23.418",
+  "temporal_baseline": 36.0,
+  "short_wavelength_displacement": -0.0058412552,
+  "x": 267915.0,
+  "y": 3293505.0
+ },
+ "OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20170326T002619Z_v1.0_20251023T225404Z.nc": {
+  "netcdf_uri": "s3://asf-cumulus-prod-opera-products/OPERA_L3_DISP-S1_V1/OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20170326T002619Z_v1.0_20251023T225404Z/OPERA_L3_DISP-S1_IW_F08882_VV_20160927T002623Z_20170326T002619Z_v1.0_20251023T225404Z.nc",
+  "bytes": 444596224.0,
+  "reference_datetime": "2016-09-27T00:26:23.489",
+  "secondary_datetime": "2017-03-26T00:26:19.898",
+  "temporal_baseline": 180.0,
+  "short_wavelength_displacement": -0.0019984245,
+  "x": 267915.0,
+  "y": 3293505.0
+ },
+ "OPERA_L3_DISP-S1_IW_F08882_VV_20170326T002619Z_20170407T002620Z_v1.0_20251024T053611Z.nc": {
+  "netcdf_uri": "s3://asf-cumulus-prod-opera-products/OPERA_L3_DISP-S1_V1/OPERA_L3_DISP-S1_IW_F08882_VV_20170326T002619Z_20170407T002620Z_v1.0_20251024T053611Z/OPERA_L3_DISP-S1_IW_F08882_VV_20170326T002619Z_20170407T002620Z_v1.0_20251024T053611Z.nc",
+  "bytes": 415236096.0,
+  "reference_datetime": "2016-09-27T00:26:23.489",
+  "secondary_datetime": "2017-04-07T00:26:20.375",
+  "temporal_baseline": 192.0,
+  "short_wavelength_displacement": -0.0061764717,
+  "x": 267915.0,
+  "y": 3293505.0
+ },
+ "OPERA_L3_DISP-S1_IW_F08882_VV_20170326T002619Z_20170419T002620Z_v1.0_20251024T053611Z.nc": {
+  "netcdf_uri": "s3://asf-cumulus-prod-opera-products/OPERA_L3_DISP-S1_V1/OPERA_L3_DISP-S1_IW_F08882_VV_20170326T002619Z_20170419T002620Z_v1.0_20251024T053611Z/OPERA_L3_DISP-S1_IW_F08882_VV_20170326T002619Z_20170419T002620Z_v1.0_20251024T053611Z.nc",
+  "bytes": 423624704.0,
+  "reference_datetime": "2016-09-27T00:26:23.489",
+  "secondary_datetime": "2017-04-19T00:26:20.983",
+  "temporal_baseline": 204.0,
+  "short_wavelength_displacement": -0.0013923645,
+  "x": 267915.0,
+  "y": 3293505.0
+ },
+ "mean": {
+  "netcdf_uri": null,
+  "bytes": 444611816.20817846,
+  "reference_datetime": null,
+  "secondary_datetime": null,
+  "temporal_baseline": 1746.4237918216,
+  "short_wavelength_displacement": -0.0042072083,
+  "x": 267915.0,
+  "y": 3293505.0
+ }
+}

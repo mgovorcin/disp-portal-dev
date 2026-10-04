@@ -1,0 +1,19 @@
+OPERA DISP Portal (disp-portal-dev)
+
+Copyright (c) 2026 California Institute of Technology ("Caltech").
+U.S. Government sponsorship acknowledged.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE). This is in-development software
+under JPL software release review; it is not an official OPERA, JPL or NASA product.
+
+This product includes or builds on third-party software and data:
+
+- GeoLibre (https://github.com/opengeos/GeoLibre), MIT License, Copyright (c) 2026 Qiusheng Wu.
+  The build scripts fetch and compile it at a pinned commit (GEOLIBRE_COMMIT); its source is
+  not redistributed in this repository.
+- uPlot (https://github.com/leeoniya/uPlot), MIT License.
+- OPERA logo: property of the OPERA project (Jet Propulsion Laboratory), used to identify the
+  data source.
+- Data accessed at run time remains under its providers' terms: OPERA DISP-S1 (ASF DAAC / NASA
+  Earthdata), Overture Maps (ODbL / CDLA-Permissive), USGS State Geologic Map Compilation,
+  OpenFreeMap / OpenStreetMap (ODbL), EOX Sentinel-2 cloudless.

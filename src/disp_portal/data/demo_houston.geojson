@@ -1,0 +1,208 @@
+{
+ "type": "FeatureCollection",
+ "name": "houston_demo",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Katy area",
+    "kind": "area"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -95.82,
+       29.77
+      ],
+      [
+       -95.78,
+       29.77
+      ],
+      [
+       -95.78,
+       29.81
+      ],
+      [
+       -95.82,
+       29.81
+      ],
+      [
+       -95.82,
+       29.77
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Lake Jackson area",
+    "kind": "area"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -95.46,
+       29.03
+      ],
+      [
+       -95.4,
+       29.03
+      ],
+      [
+       -95.4,
+       29.07
+      ],
+      [
+       -95.46,
+       29.07
+      ],
+      [
+       -95.46,
+       29.03
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Downtown Houston",
+    "kind": "area"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -95.38,
+       29.745
+      ],
+      [
+       -95.355,
+       29.745
+      ],
+      [
+       -95.355,
+       29.765
+      ],
+      [
+       -95.38,
+       29.765
+      ],
+      [
+       -95.38,
+       29.745
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Galveston Bay (water)",
+    "kind": "area"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -94.95,
+       29.45
+      ],
+      [
+       -94.85,
+       29.45
+      ],
+      [
+       -94.85,
+       29.55
+      ],
+      [
+       -94.95,
+       29.55
+      ],
+      [
+       -94.95,
+       29.45
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Well W-1",
+    "kind": "well"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -95.37,
+     29.76
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Well W-2",
+    "kind": "well"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -95.43,
+     29.0527
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Well W-3",
+    "kind": "well"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -95.8,
+     29.79
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "I-10 west transect",
+    "kind": "line"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -95.9,
+      29.78
+     ],
+     [
+      -95.6,
+      29.785
+     ],
+     [
+      -95.3,
+      29.78
+     ]
+    ]
+   }
+  }
+ ]
+}

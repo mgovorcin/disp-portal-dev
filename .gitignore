@@ -1,0 +1,16 @@
+.venv/
+.cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+logs/
+vendor/
+geolibre-web/
+jobs-env/
+jobs/
+products
+dist-pages
+results
+products
+node_modules

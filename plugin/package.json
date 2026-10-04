@@ -1,0 +1,24 @@
+{
+  "name": "opera-disp-geolibre-plugin",
+  "version": "0.3.0",
+  "private": true,
+  "description": "GeoLibre plugin: OPERA DISP velocity overview, frames and identify via disp-proxy",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "package": "npm run build && node scripts/package-geolibre-plugin.mjs",
+    "test": "vitest --run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.9",
+    "jsdom": "^29.1.1",
+    "maplibre-gl": "^5.24.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  },
+  "dependencies": {
+    "uplot": "^1.6.32"
+  }
+}

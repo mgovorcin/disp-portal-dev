@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>disp-proxy viewer</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css">
+<style>
+  :root { --bg: #fff; --fg: #1f2328; --muted: #59636e; --panel: rgba(255,255,255,.95); --border: #d1d9e0; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --panel: rgba(22,27,34,.95); --border: #3d444d; }
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; }
+  #map { position: absolute; inset: 0; }
+  .panel { position: absolute; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  #controls { top: 10px; left: 10px; width: 250px; }
+  #controls h1 { font-size: 14px; margin: 0 0 6px; }
+  #controls label { display: block; margin: 4px 0; }
+  #legend .bar { height: 10px; border-radius: 3px; margin: 6px 0 2px; }
+  #legend .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+  .muted { color: var(--muted); font-size: 11px; }
+  #ts { bottom: 10px; left: 10px; right: 10px; max-width: 900px; display: none; }
+  #ts header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  #ts button { background: none; border: 1px solid var(--border); color: var(--fg); border-radius: 4px; cursor: pointer; }
+  #status { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="controls" class="panel">
+  <h1>ASF velocity overview (via disp-proxy)</h1>
+  <label><input type="radio" name="dir" value="asc" checked> Ascending</label>
+  <label><input type="radio" name="dir" value="desc"> Descending</label>
+  <label>Opacity <input id="opacity" type="range" min="0" max="1" step="0.05" value="0.85"></label>
+  <label>Basemap <select id="basemap"></select></label>
+  <div id="legend"><div class="bar"></div><div class="ticks"><span></span><span>0</span><span></span></div></div>
+  <div class="muted" id="meta"></div>
+  <div class="muted">Click the map: decoded tile value + ASF time series (both directions).</div>
+</div>
+<div id="ts" class="panel">
+  <header><strong id="ts-title"></strong><button id="ts-close" aria-label="Close">×</button></header>
+  <div id="status" class="muted"></div>
+  <div id="chart"></div>
+</div>
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
+<script type="module">
+const PROXY = window.location.origin;
+const TS_API = "https://d2qmcvu7qty7vn.cloudfront.net";
+const params = new URLSearchParams(location.search);
+let dir = params.get("dir") === "desc" ? "desc" : "asc";
+document.querySelector(`input[value=${dir}]`).checked = true;
+
+// Basemap catalogue is served by the proxy (src/disp_portal/basemaps.py), shared with the plugin.
+const BASEMAPS = Object.fromEntries((await (await fetch(`${PROXY}/basemaps`)).json()).map(b => [b.key, b]));
+const darkScheme = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+let basemap = BASEMAPS[params.get("basemap")] ? params.get("basemap") : (darkScheme ? "dark" : "light");
+
+const sources = {
+  vel: { type: "raster", tileSize: 256, minzoom: 2, maxzoom: 12,
+    attribution: "OPERA DISP-S1 / ASF overview tiles",
+    tiles: [`${PROXY}/tiles/${dir}/vel/{z}/{x}/{y}.png`] },
+};
+const baseLayers = [];
+const labelLayers = [];
+for (const [key, b] of Object.entries(BASEMAPS)) {
+  sources[`bm-${key}`] = { type: "raster", tileSize: 256, maxzoom: b.maxzoom, attribution: b.attribution, tiles: b.tiles };
+  baseLayers.push({ id: `bm-${key}`, type: "raster", source: `bm-${key}`, layout: { visibility: key === basemap ? "visible" : "none" } });
+  if (b.labels) {
+    sources[`lb-${key}`] = { type: "raster", tileSize: 256, maxzoom: b.maxzoom, tiles: b.labels };
+    labelLayers.push({ id: `lb-${key}`, type: "raster", source: `lb-${key}`, layout: { visibility: key === basemap ? "visible" : "none" } });
+  }
+}
+
+const map = new maplibregl.Map({
+  container: "map",
+  center: [Number(params.get("lon") ?? -95.4), Number(params.get("lat") ?? 29.8)],
+  zoom: Number(params.get("z") ?? 8),
+  style: {
+    version: 8,
+    sources,
+    layers: [
+      ...baseLayers,
+      { id: "vel", type: "raster", source: "vel", paint: { "raster-opacity": 0.85, "raster-resampling": "nearest" } },
+      ...labelLayers,
+    ],
+  },
+});
+
+function setBasemap(key) {
+  basemap = key;
+  for (const k of Object.keys(BASEMAPS)) {
+    for (const id of [`bm-${k}`, `lb-${k}`]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", k === key ? "visible" : "none");
+    }
+  }
+}
+
+const select = document.getElementById("basemap");
+for (const [key, b] of Object.entries(BASEMAPS)) select.add(new Option(b.name, key, false, key === basemap));
+select.addEventListener("change", e => setBasemap(e.target.value));
+
+async function loadLegend() {
+  const info = await (await fetch(`${PROXY}/extent/${dir}/vel`)).json();
+  const [lo, hi] = info.scale_range.range;
+  document.querySelector("#legend .bar").style.background = `linear-gradient(to right, ${info.legend_colors.join(",")})`;
+  const ticks = document.querySelectorAll("#legend .ticks span");
+  ticks[0].textContent = `≤ ${(lo * 1000).toFixed(0)}`;
+  ticks[2].textContent = `≥ +${(hi * 1000).toFixed(0)} mm/yr`;
+  document.getElementById("meta").textContent =
+    `Tiles dated ${info.tile_date ?? "unknown"}; step ${(info.quantization * 1000).toFixed(2)} mm/yr; short-wavelength LOS.`;
+}
+
+function setDirection(d) {
+  dir = d;
+  map.getSource("vel").setTiles([`${PROXY}/tiles/${dir}/vel/{z}/{x}/{y}.png`]);
+  loadLegend();
+}
+
+document.querySelectorAll("input[name=dir]").forEach(el => el.addEventListener("change", e => setDirection(e.target.value)));
+document.getElementById("opacity").addEventListener("input", e => map.setPaintProperty("vel", "raster-opacity", Number(e.target.value)));
+document.getElementById("ts-close").addEventListener("click", () => { document.getElementById("ts").style.display = "none"; });
+map.on("load", loadLegend);
+
+let plot = null;
+let marker = null;
+let controller = null;
+
+async function fetchSeries(lng, lat, direction, signal) {
+  const response = await fetch(`${TS_API}/timeseries`, {
+    method: "POST", signal,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ wkt: `POINT(${lng} ${lat})`, bucket: "asf-cumulus-prod-opera-products",
+      polarization: "VV", flightDirection: direction.toUpperCase() }),
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.detail ?? response.statusText);
+  const rows = Object.entries(body)
+    .filter(([k, v]) => k.endsWith(".nc") && v.secondary_datetime)
+    .map(([k, v]) => ({ t: Date.parse(v.secondary_datetime + "Z") / 1000, d: v.short_wavelength_displacement * 1000,
+                        frame: (k.match(/_F(\d{5})_/) ?? [])[1] }))
+    .sort((a, b) => a.t - b.t);
+  return rows;
+}
+
+map.on("click", async (e) => {
+  const { lng, lat } = e.lngLat;
+  marker?.remove();
+  marker = new maplibregl.Marker({ color: "#d62728" }).setLngLat([lng, lat]).addTo(map);
+  controller?.abort();
+  controller = new AbortController();
+  const panel = document.getElementById("ts");
+  const status = document.getElementById("status");
+  panel.style.display = "block";
+  document.getElementById("ts-title").textContent = `${lng.toFixed(4)}, ${lat.toFixed(4)}`;
+
+  const values = await Promise.all(["asc", "desc"].map(d =>
+    fetch(`${PROXY}/value?lon=${lng}&lat=${lat}&dir=${d}`).then(r => r.json()).catch(() => null)));
+  const fmt = v => v?.value == null ? "no data" : `${(v.value * 1000).toFixed(1)} mm/yr${v.clipped ? " (clipped)" : ""}`;
+  const tileText = `Tile velocity: asc ${fmt(values[0])}, desc ${fmt(values[1])}.`;
+  status.textContent = `${tileText} Fetching ASF time series (10–30 s)…`;
+
+  const signal = controller.signal;
+  const results = await Promise.allSettled(["ascending", "descending"].map(d => fetchSeries(lng, lat, d, signal)));
+  if (signal.aborted) return;
+  const msgs = [];
+  const series = results.map((r, i) => {
+    const name = i === 0 ? "asc" : "desc";
+    if (r.status === "rejected") { msgs.push(`${name}: ${r.reason.message}`); return []; }
+    if (r.value.length) msgs.push(`${name}: F${r.value[0].frame}, ${r.value.length} epochs`);
+    return r.value;
+  });
+  status.textContent = `${tileText} ${msgs.join("; ")}`;
+
+  // uPlot needs one shared x axis; merge both directions with nulls.
+  const times = [...new Set(series.flat().map(r => r.t))].sort((a, b) => a - b);
+  const lookup = series.map(rows => new Map(rows.map(r => [r.t, r.d])));
+  const data = [times, ...lookup.map(m => times.map(t => m.get(t) ?? null))];
+  plot?.destroy();
+  const width = Math.min(876, panel.clientWidth - 24);
+  plot = new uPlot({
+    width, height: 220,
+    scales: { x: { time: true } },
+    axes: [{ stroke: getComputedStyle(document.body).color }, { label: "mm", stroke: getComputedStyle(document.body).color }],
+    series: [{}, { label: "asc (mm)", stroke: "#1f77b4", paths: () => null, points: { show: true, size: 4, fill: "#1f77b4" } },
+                 { label: "desc (mm)", stroke: "#ff7f0e", paths: () => null, points: { show: true, size: 4, fill: "#ff7f0e" } }],
+  }, data, document.getElementById("chart"));
+});
+</script>
+</body>
+</html>

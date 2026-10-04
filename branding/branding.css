@@ -1,0 +1,90 @@
+/*
+ * OPERA DISP Portal branding on top of the self-hosted GeoLibre build.
+ * Injected into geolibre-web/index.html by scripts/build_geolibre.sh (no GeoLibre source changes).
+ * Palette and emblem from the OPERA logo (github.com/opera-adt); no NASA/JPL insignia are used.
+ */
+:root:root {
+  /* colours sampled from the OPERA logo (opera-adt) */
+  --opera-charcoal: #303030;
+  --opera-teal: #10b0b0;
+  --opera-teal-dark: #007570;
+  --opera-mint: #90d0c0;
+  --opera-sky: #90d0f0;
+  --opera-blue: #50a0e0;
+  --opera-accent: #0a8a86;
+  --primary: 178 86% 29% !important;          /* #0a8a86 */
+  --primary-foreground: 0 0% 100% !important;
+  --ring: 178 86% 29% !important;
+}
+:root:root.dark {
+  --opera-accent: #2cc2bd;
+  --primary: 178 63% 47% !important;           /* #2cc2bd */
+  --primary-foreground: 180 40% 8% !important;
+  --ring: 178 63% 47% !important;
+}
+
+/* OPERA DISP sidebar accent follows the brand */
+.od-panel,
+.od-chart-panel {
+  --od-accent: var(--opera-accent) !important;
+}
+
+/* header brand block (built by branding.js) */
+.opera-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-end: 10px;
+  text-decoration: none;
+  color: inherit;
+  line-height: 1.05;
+  flex-shrink: 0;
+}
+.opera-brand-mark {
+  display: inline-flex;
+  flex: none;
+}
+.opera-brand-mark img {
+  width: 28px;
+  height: 28px;
+  display: block;
+}
+.dark .opera-brand-mark img {
+  /* the charcoal ring needs a light backing on dark headers */
+  background: radial-gradient(circle, #fff 62%, transparent 64%);
+  border-radius: 50%;
+}
+.opera-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+.opera-brand-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+}
+.opera-brand-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+}
+.opera-brand-sub a {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.opera-brand-sub a:hover {
+  color: hsl(var(--primary));
+}
+/* the original icon + name are replaced by the brand block */
+.opera-brand-host > svg,
+.opera-brand-host > span:not(.opera-brand):not(.opera-brand *) {
+  display: none !important;
+}
+@media (max-width: 640px) {
+  .opera-brand-text {
+    display: none;
+  }
+}

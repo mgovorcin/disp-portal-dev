@@ -1,0 +1,8 @@
+{
+  "id": "opera-disp",
+  "name": "OPERA DISP",
+  "version": "0.3.0",
+  "entry": "dist/index.js",
+  "style": "dist/style.css",
+  "description": "OPERA DISP-S1 velocity overview (ASF), frame outlines and identify, served through disp-proxy."
+}
