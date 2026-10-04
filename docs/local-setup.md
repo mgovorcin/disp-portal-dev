@@ -2,13 +2,6 @@
 
 The full portal runs on your machine with `disp-proxy` (FastAPI): full-resolution ASF velocity overview, identify, layer analysis, subset downloads and products. See [plugin.md](plugin.md) for the viewer features and [downloads-and-products.md](downloads-and-products.md) for server-side processing.
 
-### About
-
-An OPERA DISP viewer on [GeoLibre](https://github.com/opengeos/GeoLibre), similar to the
-[ASF Displacement Portal](https://displacement.asf.alaska.edu/#/?dispOverview=VEL), with analysis
-against user data and time-series retrieval. See [PLAN.md](PLAN.md) for goals and tasks, and
-[PHASE0_NOTES.md](PHASE0_NOTES.md) for what was measured.
-
 ### Layout
 
 ```
@@ -22,16 +15,15 @@ scripts/check_geolibre.py   end-to-end check of the plugin inside GeoLibre web
 plugin/                     GeoLibre plugin "opera-disp" (TypeScript, Vite); bundle in plugin/geolibre-plugin/
 scripts/validate_decoder.py decoded tiles vs ASF time-series slopes, timings, edge cases
 scripts/build_phase0_notebook.py  generates notebooks/00_asf_prototype.ipynb
-notebooks/                  Phase 0 prototype (kernel "disp-portal (Portal/.venv)")
+notebooks/                  prototype notebook (ASF tiles and time-series API)
 tests/                      offline unit tests
-results/phase0/             validation CSV and figures
 ```
 
 ### Setup
 
 ```bash
-uv sync --all-extras
-.venv/bin/python -m pytest -q
+pixi run server                                   # or: uv sync && .venv/bin/disp-proxy --port 8790
+pixi run test
 .venv/bin/python scripts/validate_decoder.py       # network, about 1 min
 ```
 

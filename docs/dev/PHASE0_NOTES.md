@@ -1,3 +1,4 @@
+<!-- Internal development notes. -->
 # Phase 0 notes: ASF portal assets (2026-10-03)
 
 Measured with `scripts/validate_decoder.py` (results in `results/phase0/decoder_validation.csv`)

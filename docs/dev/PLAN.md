@@ -1,3 +1,4 @@
+<!-- Internal development notes. -->
 # OPERA DISP Portal on GeoLibre: Plan
 
 A displacement viewer similar to the [ASF Displacement Portal](https://displacement.asf.alaska.edu/#/?dispOverview=VEL),

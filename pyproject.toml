@@ -44,3 +44,23 @@ line-length = 100
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
+
+[tool.pixi.dependencies]
+python = "3.12.*"
+
+[tool.pixi.pypi-dependencies]
+disp-portal = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+# Viewer + API on http://localhost:8790 (build the bundled GeoLibre once with `pixi run build-viewer`)
+server = "disp-proxy --host 127.0.0.1 --port 8790"
+build-viewer = "bash scripts/build_geolibre.sh"
+test = "pytest -q"
+
+[tool.pixi.environments]
+# `dev` (pytest, ruff, playwright) comes from [dependency-groups]
+default = { features = ["dev"], solve-group = "default" }
