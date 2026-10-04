@@ -405,7 +405,8 @@ export class DispController {
       s.tsSource !== prev.tsSource ||
       s.cubeVariable !== prev.cubeVariable ||
       s.tsModelOnly !== prev.tsModelOnly ||
-      s.tsLegend !== prev.tsLegend
+      s.tsLegend !== prev.tsLegend ||
+      s.tsStyles !== prev.tsStyles
     ) {
       this.picksChanged();
     }

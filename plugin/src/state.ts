@@ -35,6 +35,8 @@ export interface DispState {
   tsModelOnly: boolean;
   /** Chart: draw a legend inside the plot (kept in screenshots / PNG export). */
   tsLegend: boolean;
+  /** Chart: per-series style overrides, keyed by the series label (e.g. "P1 asc"). */
+  tsStyles: Record<string, SeriesStyle>;
   fit: FitSettings;
   /** Chart shows the data, or data minus the fitted model. */
   tsView: "data" | "residuals";
@@ -71,6 +73,7 @@ export const DEFAULT_STATE: DispState = {
   showFit: true,
   tsModelOnly: false,
   tsLegend: true,
+  tsStyles: {},
   fit: { polyOrder: 1, annual: false, semiannual: false, steps: [], rejectOutliers: false },
   tsView: "data",
   tsSource: "both",
@@ -78,6 +81,42 @@ export const DEFAULT_STATE: DispState = {
 };
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+export const MARKER_SHAPES = ["circle", "ring", "square", "diamond", "triangle", "cross"] as const;
+export type MarkerShape = (typeof MARKER_SHAPES)[number];
+export type LineDash = "solid" | "dashed" | "dotted";
+
+/** Chart style of one series: data markers and its model (fit) line. Unset = default. */
+export interface SeriesStyle {
+  color?: string;
+  marker?: MarkerShape;
+  /** Marker size in CSS pixels. */
+  size?: number;
+  fitColor?: string;
+  fitWidth?: number;
+  fitDash?: LineDash;
+}
+
+const HEX = /^#[0-9a-f]{6}$/i;
+
+/** Validate saved series styles (project file / localStorage); drops anything malformed. */
+export function parseStyles(value: unknown): Record<string, SeriesStyle> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const out: Record<string, SeriesStyle> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>).slice(0, 64)) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as Record<string, unknown>;
+    const s: SeriesStyle = {};
+    if (typeof r.color === "string" && HEX.test(r.color)) s.color = r.color;
+    if (typeof r.fitColor === "string" && HEX.test(r.fitColor)) s.fitColor = r.fitColor;
+    if (MARKER_SHAPES.includes(r.marker as MarkerShape)) s.marker = r.marker as MarkerShape;
+    if (typeof r.size === "number" && r.size >= 1 && r.size <= 20) s.size = r.size;
+    if (typeof r.fitWidth === "number" && r.fitWidth >= 0.5 && r.fitWidth <= 8) s.fitWidth = r.fitWidth;
+    if (r.fitDash === "solid" || r.fitDash === "dashed" || r.fitDash === "dotted") s.fitDash = r.fitDash;
+    if (Object.keys(s).length) out[key.slice(0, 64)] = s;
+  }
+  return out;
+}
 
 export function parseFit(value: unknown): FitSettings | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -115,6 +154,8 @@ export function parseState(value: unknown): Partial<DispState> {
   const fit = parseFit(v.fit);
   if (fit) out.fit = fit;
   if (v.tsView === "data" || v.tsView === "residuals") out.tsView = v.tsView;
+  const styles = parseStyles(v.tsStyles);
+  if (styles) out.tsStyles = styles;
   if (v.tsSource === "asf" || v.tsSource === "cube" || v.tsSource === "both") out.tsSource = v.tsSource;
   if (v.cubeVariable === "displacement" || v.cubeVariable === "short_wavelength_displacement") out.cubeVariable = v.cubeVariable;
   return out;

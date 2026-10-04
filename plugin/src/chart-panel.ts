@@ -1,8 +1,8 @@
 /** Floating "time series" panel: interactive chart, model settings, steps, CSV export. */
-import { TimeseriesChart, describeFit, prepareSeries } from "./chart";
+import { type ResolvedStyle, TimeseriesChart, describeFit, prepareSeries } from "./chart";
 import type { DispController } from "./controller";
 import type { Pick } from "./picks";
-import type { DispState, FitSettings } from "./state";
+import { type DispState, type FitSettings, MARKER_SHAPES, type MarkerShape, type SeriesStyle } from "./state";
 import { toCsv } from "./timeseries";
 
 export function downloadText(filename: string, text: string, type = "text/csv"): void {
@@ -243,11 +243,82 @@ export function renderChartPanel(container: HTMLElement, controller: DispControl
   root.append(row1, row2, row3, loading, chartHost, note);
   container.append(root);
 
+  // Style editor: opened from a series swatch; edits controller.state.tsStyles[label].
+  const stylePop = el("div", { className: "od-style-pop", hidden: true, role: "dialog", ariaLabel: "Series style" });
+  root.append(stylePop);
+  let styleLabel: string | null = null;
+  const closeStyle = () => {
+    stylePop.hidden = true;
+    styleLabel = null;
+  };
+  const setStyle = (patch: Partial<SeriesStyle> | null) => {
+    if (!styleLabel) return;
+    const all = { ...controller.state.tsStyles };
+    if (patch === null) delete all[styleLabel];
+    else all[styleLabel] = { ...(all[styleLabel] ?? {}), ...patch };
+    controller.update({ tsStyles: all });
+  };
+  const openStyle = (label: string, anchor: HTMLElement, st: ResolvedStyle) => {
+    styleLabel = label;
+    const color = el("input", { type: "color", value: st.color, ariaLabel: "Marker colour" });
+    color.addEventListener("input", () => setStyle({ color: color.value }));
+    const marker = el("select", { className: "od-input od-input-inline", ariaLabel: "Marker shape" });
+    const glyph: Record<MarkerShape, string> = { circle: "● circle", ring: "○ ring", square: "■ square", diamond: "◆ diamond", triangle: "▲ triangle", cross: "✕ cross" };
+    for (const m of MARKER_SHAPES) marker.add(new Option(glyph[m], m));
+    marker.value = st.marker;
+    marker.addEventListener("change", () => setStyle({ marker: marker.value as MarkerShape }));
+    const size = el("input", { type: "range", min: "2", max: "14", step: "1", value: String(st.size), ariaLabel: "Marker size" });
+    size.addEventListener("input", () => setStyle({ size: Number(size.value) }));
+    const fitColor = el("input", { type: "color", value: st.fitColor, ariaLabel: "Fit colour" });
+    fitColor.addEventListener("input", () => setStyle({ fitColor: fitColor.value }));
+    const fitWidth = el("input", { type: "range", min: "0.5", max: "6", step: "0.5", value: String(st.fitWidth), ariaLabel: "Fit line width" });
+    fitWidth.addEventListener("input", () => setStyle({ fitWidth: Number(fitWidth.value) }));
+    const fitDash = el("select", { className: "od-input od-input-inline", ariaLabel: "Fit line style" });
+    fitDash.append(new Option("solid", "solid"), new Option("dashed", "dashed"), new Option("dotted", "dotted"));
+    fitDash.value = st.fitDash;
+    fitDash.addEventListener("change", () => setStyle({ fitDash: fitDash.value as SeriesStyle["fitDash"] }));
+    const reset = el("button", { type: "button", className: "od-btn", textContent: "Reset" });
+    reset.addEventListener("click", () => {
+      setStyle(null);
+      closeStyle();
+    });
+    const done = el("button", { type: "button", className: "od-btn od-primary", textContent: "Done" });
+    done.addEventListener("click", closeStyle);
+    const row = (label: string, ...controls: (Node | string)[]) =>
+      el("label", { className: "od-style-row" }, el("span", { textContent: label }), el("span", {}, ...controls));
+    stylePop.replaceChildren(
+      el("strong", { textContent: label }),
+      el("div", { className: "od-style-group", textContent: "Data" }),
+      row("Colour", color),
+      row("Marker", marker),
+      row("Size", size),
+      el("div", { className: "od-style-group", textContent: "Fit" }),
+      row("Colour", fitColor),
+      row("Width", fitWidth),
+      row("Line", fitDash),
+      el("div", { className: "od-row od-buttons" }, done, reset),
+    );
+    // Place next to the swatch, inside the chart window.
+    const a = anchor.getBoundingClientRect();
+    const r = root.getBoundingClientRect();
+    stylePop.hidden = false;
+    const top = Math.min(a.bottom - r.top + 4, root.clientHeight - stylePop.offsetHeight - 4);
+    stylePop.style.top = `${Math.max(4, top)}px`;
+    stylePop.style.left = `${Math.max(4, Math.min(a.left - r.left, root.clientWidth - stylePop.offsetWidth - 4))}px`;
+  };
+  root.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeStyle();
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (!stylePop.hidden && !stylePop.contains(e.target as Node) && !(e.target as HTMLElement).closest?.(".od-style-swatch")) closeStyle();
+  });
+
   const chart = new TimeseriesChart(chartHost, {
     onAddStep: (t) => {
       addStep(new Date(t).toISOString().slice(0, 10));
       setAdding(false);
     },
+    onEditStyle: openStyle,
   });
   const setAdding = (on: boolean) => {
     chart.setAddingStep(on);
@@ -301,6 +372,7 @@ export function renderChartPanel(container: HTMLElement, controller: DispControl
       updateLoading(picks);
       chart.update(picks, {
         modelOnly: controller.state.tsModelOnly,
+        styles: controller.state.tsStyles,
         legend: controller.state.tsLegend,
         showFit: controller.state.showFit,
         reference,

@@ -4,7 +4,7 @@ import "uplot/dist/uPlot.min.css";
 import { type FitModel, type FitResult, fitModel } from "./fit";
 import { type CubeSeries, type CubeVariable, correctionsLabel, cubePoints, frameName } from "./cube-series";
 import type { Pick } from "./picks";
-import type { Direction, FitSettings } from "./state";
+import type { Direction, FitSettings, LineDash, MarkerShape, SeriesStyle } from "./state";
 import { type TsPoint, subtractReference } from "./timeseries";
 
 export interface ChartOptions {
@@ -18,6 +18,97 @@ export interface ChartOptions {
   modelOnly?: boolean;
   /** Draw a legend inside the plot area. */
   legend?: boolean;
+  /** Per-series style overrides keyed by series label. */
+  styles?: Record<string, SeriesStyle>;
+}
+
+/** Effective style of a series: user overrides on top of the defaults (pick colour, dot/ring). */
+export interface ResolvedStyle {
+  color: string;
+  marker: MarkerShape;
+  size: number;
+  fitColor: string;
+  fitWidth: number;
+  fitDash: LineDash;
+}
+
+export function resolveStyle(
+  s: { label: string; direction: Direction; source: "asf" | "cube"; pick: { color: string } },
+  options: { styles?: Record<string, SeriesStyle>; modelOnly?: boolean; showFit?: boolean },
+): ResolvedStyle {
+  const o = options.styles?.[s.label] ?? {};
+  const desc = s.direction === "desc";
+  const color = o.color ?? s.pick.color;
+  return {
+    color,
+    marker: o.marker ?? (desc ? "ring" : "circle"),
+    size: o.size ?? (s.source === "cube" ? 3 : 5),
+    fitColor: o.fitColor ?? color,
+    fitWidth: o.fitWidth ?? (options.modelOnly && options.showFit ? 2.2 : 1.5),
+    fitDash: o.fitDash ?? (desc ? "dashed" : "solid"),
+  };
+}
+
+const DASHES: Record<LineDash, number[]> = { solid: [], dashed: [6, 4], dotted: [1.5, 3] };
+
+/** Add one marker of `shape` (centre x, y, size in device px) to the stroke/fill paths. */
+export function addMarker(stroke: Path2D, fill: Path2D | null, shape: MarkerShape, x: number, y: number, size: number): void {
+  const r = size / 2;
+  const add = (p: Path2D) => {
+    switch (shape) {
+      case "circle":
+      case "ring":
+        p.moveTo(x + r, y);
+        p.arc(x, y, r, 0, 2 * Math.PI);
+        break;
+      case "square":
+        p.rect(x - r * 0.88, y - r * 0.88, r * 1.76, r * 1.76);
+        break;
+      case "diamond":
+        p.moveTo(x, y - r * 1.2);
+        p.lineTo(x + r * 1.2, y);
+        p.lineTo(x, y + r * 1.2);
+        p.lineTo(x - r * 1.2, y);
+        p.closePath();
+        break;
+      case "triangle":
+        p.moveTo(x, y - r * 1.15);
+        p.lineTo(x + r * 1.1, y + r * 0.85);
+        p.lineTo(x - r * 1.1, y + r * 0.85);
+        p.closePath();
+        break;
+      case "cross":
+        p.moveTo(x - r, y - r);
+        p.lineTo(x + r, y + r);
+        p.moveTo(x + r, y - r);
+        p.lineTo(x - r, y + r);
+        break;
+    }
+  };
+  add(stroke);
+  if (fill && shape !== "ring" && shape !== "cross") add(fill);
+}
+
+/** uPlot point renderer drawing `shape` markers (ring and cross are outline-only). */
+function markerPaths(shape: MarkerShape, sizeCss: number): uPlot.Series.Points.PathBuilder {
+  return (u, seriesIdx, idx0, idx1) => {
+    const size = sizeCss * uPlot.pxRatio;
+    const stroke = new Path2D();
+    const fill = new Path2D();
+    const xs = u.data[0];
+    const ys = u.data[seriesIdx];
+    const scaleKey = u.series[seriesIdx].scale ?? "y";
+    const { left, top, width, height } = u.bbox;
+    for (let i = idx0; i <= idx1; i++) {
+      const v = ys[i];
+      if (v === null || v === undefined) continue;
+      const x = u.valToPos(xs[i], "x", true);
+      const y = u.valToPos(v as number, scaleKey, true);
+      if (x < left || x > left + width || y < top || y > top + height) continue;
+      addMarker(stroke, fill, shape, x, y, size);
+    }
+    return { stroke, fill: shape === "ring" || shape === "cross" ? null : fill };
+  };
 }
 
 export interface PreparedSeries {
@@ -125,7 +216,7 @@ function build(prepared: PreparedSeries[], options: ChartOptions): Built {
   const value = (_u: uPlot, v: number | null) => (v === null ? "—" : `${v.toFixed(1)} mm`);
 
   for (const s of prepared) {
-    const asc = s.direction === "asc";
+    const st = resolveStyle(s, options);
     const used: (number | null)[] = new Array(times.length).fill(null);
     const outliers: (number | null)[] = new Array(times.length).fill(null);
     s.points.forEach((p, i) => {
@@ -137,21 +228,21 @@ function build(prepared: PreparedSeries[], options: ChartOptions): Built {
     series.push(
       s.source === "cube"
         ? {
-            // Downloaded cube: connected line + small points, dashed for descending.
+            // Downloaded cube: connected line + small markers (line dash follows the fit dash).
             label: s.label,
-            stroke: s.pick.color,
+            stroke: st.color,
             width: 1.4,
-            dash: asc ? [] : [5, 3],
+            dash: DASHES[st.fitDash],
             spanGaps: true,
-            points: { show: true, size: 3, width: 1, stroke: s.pick.color, fill: s.pick.color },
+            points: { show: true, size: st.size, width: 1, stroke: st.color, fill: st.color, paths: markerPaths(st.marker, st.size) },
             value,
             show: !hideData,
           }
         : {
             label: s.label,
-            stroke: s.pick.color,
+            stroke: st.color,
             paths: () => null,
-            points: { show: true, size: 5, width: 1.5, stroke: s.pick.color, fill: asc ? s.pick.color : "transparent" },
+            points: { show: true, size: st.size, width: 1.5, stroke: st.color, fill: st.color, paths: markerPaths(st.marker, st.size) },
             value,
             show: !hideData,
           },
@@ -179,11 +270,12 @@ function build(prepared: PreparedSeries[], options: ChartOptions): Built {
         }
       }
       data.push(col);
+      const st = resolveStyle(s, options);
       series.push({
         label: `${s.label} model`,
-        stroke: s.pick.color,
-        width: hideData ? 2.2 : 1.5,
-        dash: s.direction === "asc" ? [] : [6, 4],
+        stroke: st.fitColor,
+        width: st.fitWidth,
+        dash: DASHES[st.fitDash],
         spanGaps: true,
         points: { show: false },
         value,
@@ -263,8 +355,10 @@ function stepMarkers(getSteps: () => number[], onClickTime: (t: number) => void,
 export interface LegendEntry {
   label: string;
   color: string;
-  /** Marker: filled dot (ascending ASF), ring (descending ASF), or line (cube / model only). */
-  marker: "dot" | "ring" | "line" | "dash";
+  /** Data marker shape, or "line" (cube series / model-only view). */
+  marker: MarkerShape | "line";
+  /** Line dash for "line" entries. */
+  dash?: LineDash;
   detail?: string;
 }
 
@@ -272,13 +366,13 @@ export interface LegendEntry {
 export function legendEntries(prepared: PreparedSeries[], options: ChartOptions): LegendEntry[] {
   const lineOnly = Boolean(options.modelOnly && options.showFit);
   return prepared.map((s) => {
-    const desc = s.direction === "desc";
-    const marker: LegendEntry["marker"] =
-      lineOnly || s.source === "cube" ? (desc ? "dash" : "line") : desc ? "ring" : "dot";
+    const st = resolveStyle(s, options);
+    const line = lineOnly || s.source === "cube";
+    const marker: LegendEntry["marker"] = line ? "line" : st.marker;
     const rate = options.showFit && s.fit && s.fit.model.polyOrder >= 1
       ? `${s.fit.rate * 1000 >= 0 ? "+" : ""}${(s.fit.rate * 1000).toFixed(1)} ± ${(s.fit.rateStd * 1000).toFixed(1)} mm/yr`
       : undefined;
-    return { label: s.label, color: s.pick.color, marker, detail: rate };
+    return { label: s.label, color: line && lineOnly ? st.fitColor : st.color, marker, dash: line ? st.fitDash : undefined, detail: rate };
   });
 }
 
@@ -327,19 +421,21 @@ function canvasLegend(getEntries: () => LegendEntry[], enabled: () => boolean): 
             ctx.strokeStyle = e.color;
             ctx.fillStyle = e.color;
             ctx.lineWidth = 2 * r;
-            ctx.setLineDash(e.marker === "dash" ? [4 * r, 3 * r] : []);
-            if (e.marker === "line" || e.marker === "dash") {
+            if (e.marker === "line") {
+              ctx.setLineDash((DASHES[e.dash ?? "solid"] ?? []).map((d) => d * r));
               ctx.beginPath();
               ctx.moveTo(sx, cy);
               ctx.lineTo(sx + sw, cy);
               ctx.stroke();
+              ctx.setLineDash([]);
             } else {
-              ctx.beginPath();
-              ctx.arc(sx + sw / 2, cy, 3.5 * r, 0, 2 * Math.PI);
-              if (e.marker === "dot") ctx.fill();
-              else ctx.stroke();
+              const stroke = new Path2D();
+              const fill = new Path2D();
+              addMarker(stroke, fill, e.marker, sx + sw / 2, cy, 7 * r);
+              ctx.lineWidth = 1.5 * r;
+              if (e.marker !== "ring" && e.marker !== "cross") ctx.fill(fill);
+              ctx.stroke(stroke);
             }
-            ctx.setLineDash([]);
           }
           ctx.fillStyle = "#222";
           ctx.textBaseline = "middle";
@@ -354,6 +450,8 @@ function canvasLegend(getEntries: () => LegendEntry[], enabled: () => boolean): 
 export interface ChartCallbacks {
   /** Called with a time (epoch ms) when the user clicks the chart in add-step mode. */
   onAddStep?: (t: number) => void;
+  /** A series swatch was clicked: open the style editor for `label` next to `anchor`. */
+  onEditStyle?: (label: string, anchor: HTMLElement, style: ResolvedStyle) => void;
 }
 
 export class TimeseriesChart {
@@ -428,6 +526,7 @@ export class TimeseriesChart {
       options.source ?? "both",
       options.cubeVariable ?? "displacement",
       options.modelOnly ?? false,
+      options.styles ?? {},
     ]);
     if (key === this.lastKey) {
       this.plot?.redraw(false, false); // legend text (rates) may have changed
@@ -501,11 +600,10 @@ export class TimeseriesChart {
         const r = pick.results[direction];
         const row = document.createElement("div");
         row.className = "od-ts-row";
-        const swatch = document.createElement("span");
-        swatch.className = `od-swatch ${direction === "desc" ? "od-swatch-ring" : ""}`;
-        swatch.style.setProperty("--od-color", pick.color);
+        const label = `${pick.label} ${direction}`;
+        const swatch = this.styleSwatch(label, resolveStyle({ label, direction, source: "asf", pick }, options), Boolean(r.series));
         const name = document.createElement("span");
-        name.textContent = `${pick.label} ${direction}`;
+        name.textContent = label;
         const info = document.createElement("span");
         info.className = "od-ts-info";
         if (r.status === "loading") {
@@ -573,12 +671,17 @@ export class TimeseriesChart {
     if (source === "asf") return [];
     const cube = pick.cube;
     if (!cube) return [];
-    const row = (label: string, text: string, color: string, ring = false, cls = "") => {
+    const row = (label: string, text: string, color: string, ring = false, cls = "", styleKey?: string, direction: Direction = "asc") => {
       const r = document.createElement("div");
       r.className = "od-ts-row";
-      const swatch = document.createElement("span");
-      swatch.className = `od-swatch od-swatch-line ${ring ? "od-swatch-ring" : ""}`;
-      swatch.style.setProperty("--od-color", color);
+      let swatch: HTMLElement;
+      if (styleKey) {
+        swatch = this.styleSwatch(styleKey, resolveStyle({ label: styleKey, direction, source: "cube", pick }, options), true, true);
+      } else {
+        swatch = document.createElement("span");
+        swatch.className = `od-swatch od-swatch-line ${ring ? "od-swatch-ring" : ""}`;
+        swatch.style.setProperty("--od-color", color);
+      }
       const name = document.createElement("span");
       name.textContent = label;
       const info = document.createElement("span");
@@ -606,8 +709,49 @@ export class TimeseriesChart {
         isRef ? `${head} · reference` : p ? `${head}\n${describeFit(p.fit)}` : head,
         pick.color,
         c.direction === "desc",
+        "",
+        p?.label ?? `${pick.label} ${c.direction} cube ${frameName(c.frame)}`,
+        c.direction,
       );
     });
+  }
+
+  /** Button showing a series' marker and fit line; opens the style editor. */
+  private styleSwatch(label: string, st: ResolvedStyle, enabled: boolean, line = false): HTMLElement {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "od-style-swatch";
+    b.title = enabled ? `Style of ${label} (marker, colour, fit line)` : label;
+    b.disabled = !enabled;
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 28 14");
+    svg.setAttribute("width", "28");
+    svg.setAttribute("height", "14");
+    const fit = document.createElementNS(ns, "line");
+    Object.entries({ x1: "1", y1: "7", x2: "27", y2: "7", stroke: st.fitColor, "stroke-width": String(Math.min(st.fitWidth, 3)),
+      "stroke-dasharray": DASHES[st.fitDash].join(" ") }).forEach(([k, v]) => fit.setAttribute(k, v));
+    svg.append(fit);
+    if (!line || st.marker) {
+      const m = document.createElementNS(ns, "path");
+      const r = Math.min(Math.max(st.size, 4), 9) / 2;
+      const d: Record<MarkerShape, string> = {
+        circle: `M${14 + r},7 A${r},${r} 0 1,1 ${14 - r},7 A${r},${r} 0 1,1 ${14 + r},7Z`,
+        ring: `M${14 + r},7 A${r},${r} 0 1,1 ${14 - r},7 A${r},${r} 0 1,1 ${14 + r},7Z`,
+        square: `M${14 - r},${7 - r}h${2 * r}v${2 * r}h${-2 * r}Z`,
+        diamond: `M14,${7 - r * 1.2}L${14 + r * 1.2},7L14,${7 + r * 1.2}L${14 - r * 1.2},7Z`,
+        triangle: `M14,${7 - r * 1.15}L${14 + r * 1.1},${7 + r * 0.85}L${14 - r * 1.1},${7 + r * 0.85}Z`,
+        cross: `M${14 - r},${7 - r}L${14 + r},${7 + r}M${14 + r},${7 - r}L${14 - r},${7 + r}`,
+      };
+      m.setAttribute("d", d[st.marker]);
+      m.setAttribute("stroke", st.color);
+      m.setAttribute("stroke-width", "1.5");
+      m.setAttribute("fill", st.marker === "ring" || st.marker === "cross" ? "Canvas" : st.color);
+      svg.append(m);
+    }
+    b.append(svg);
+    if (enabled) b.addEventListener("click", () => this.callbacks.onEditStyle?.(label, b, st));
+    return b;
   }
 
   /** PNG of the plot (axes, series, step markers and the in-plot legend) on a white background. */

@@ -63,7 +63,7 @@ describe("chart legend and collapsed table", () => {
     const prepared = prepareSeries([pick(1)], { showFit: true, reference: null, fit: plain, source: "asf" });
     const entries = legendEntries(prepared, { showFit: true, reference: null, fit: plain });
     expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({ label: "P1 asc", marker: "dot", color: "#4e79a7" });
+    expect(entries[0]).toMatchObject({ label: "P1 asc", marker: "circle", color: "#4e79a7" });
     expect(entries[0].detail).toMatch(/^[+-]\d+\.\d ± \d+\.\d mm\/yr$/);
     const modelOnly = legendEntries(prepared, { showFit: true, reference: null, fit: plain, modelOnly: true });
     expect(modelOnly[0].marker).toBe("line");
@@ -86,5 +86,30 @@ describe("chart legend and collapsed table", () => {
     expect(failed.textContent).toContain("No data found for the given area of interest");
     expect(failed.textContent).not.toContain("Time series failed: 400");
     chart.destroy();
+  });
+});
+
+import { parseStyles } from "../src/state";
+import { resolveStyle } from "../src/chart";
+
+describe("series styles", () => {
+  it("resolves defaults and overrides", () => {
+    const s = { label: "P1 desc", direction: "desc" as const, source: "asf" as const, pick: { color: "#4e79a7" } };
+    expect(resolveStyle(s, {})).toMatchObject({ color: "#4e79a7", marker: "ring", size: 5, fitDash: "dashed", fitColor: "#4e79a7" });
+    const st = resolveStyle(s, { styles: { "P1 desc": { color: "#ff0000", marker: "triangle", size: 8, fitWidth: 3, fitDash: "dotted" } } });
+    expect(st).toMatchObject({ color: "#ff0000", marker: "triangle", size: 8, fitColor: "#ff0000", fitWidth: 3, fitDash: "dotted" });
+  });
+
+  it("validates saved styles", () => {
+    expect(parseStyles({ "P1 asc": { color: "#00ff00", marker: "star", size: 99, fitDash: "dotted" }, bad: 3 })).toEqual({
+      "P1 asc": { color: "#00ff00", fitDash: "dotted" },
+    });
+    expect(parseStyles([1, 2])).toBeNull();
+  });
+
+  it("uses the styled marker in the legend", () => {
+    const prepared = prepareSeries([pick(1)], { showFit: true, reference: null, fit: { ...fit, steps: [] }, source: "asf" });
+    const e = legendEntries(prepared, { showFit: true, reference: null, styles: { "P1 asc": { marker: "square", color: "#123456" } } });
+    expect(e[0]).toMatchObject({ marker: "square", color: "#123456" });
   });
 });
