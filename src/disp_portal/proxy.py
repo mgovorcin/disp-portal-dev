@@ -746,7 +746,7 @@ async def project(
     lon: float = -95.4,
     lat: float = 29.8,
     z: float = 8,
-    basemap: str = "light",
+    basemap: str = "sentinel2",
     dir: DirParam = "asc",
     demo: bool = False,
 ):
@@ -757,7 +757,7 @@ async def project(
     Open ``https://web.geolibre.app/?url=<this proxy>/project.json``.
     """
     base = str(request.base_url).rstrip("/")
-    basemap = basemap if basemap in BASEMAPS else "light"
+    basemap = basemap if basemap in BASEMAPS else "sentinel2"
     return JSONResponse(
         {
             "version": "0.1.0",

@@ -63,7 +63,8 @@ export const DEFAULT_STATE: DispState = {
   direction: "asc",
   opacity: 0.85,
   visible: true,
-  basemap: null,
+  // Sentinel-2 cloudless (EOX) in both the local and the GitHub Pages catalogue.
+  basemap: "sentinel2",
   labelsOnTop: true,
   showFrames: true,
   identify: true,

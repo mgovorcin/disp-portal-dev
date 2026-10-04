@@ -10,9 +10,9 @@ Writes into the built GeoLibre directory:
 - ``sw.js``             service-worker kill switch (GeoLibre's offline cache would pin old builds)
 - ``.nojekyll``         serve files as-is
 
-Only basemaps whose terms allow use from a public site are listed (OpenFreeMap, OpenStreetMap
-standard tiles for light use, EOX Sentinel-2 cloudless); the Esri/Google basemaps of the local
-proxy are left out.
+Basemaps: OpenFreeMap, OpenStreetMap (standard tiles, light use), EOX Sentinel-2 cloudless (the
+default), and Google satellite hybrid on the maintainer's request (Google's terms restrict direct
+tile access outside its APIs). The Esri basemaps of the local proxy are left out.
 
 Usage:
     python scripts/write_pages_static.py dist-pages
@@ -50,11 +50,19 @@ RASTER = {
         "attribution": "© OpenStreetMap contributors",
         "maxzoom": 19,
     },
-    "satellite": {
+    "sentinel2": {
         "name": "Satellite (Sentinel-2 cloudless 2023, EOX)",
         "tiles": ["https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg"],
         "attribution": "Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023)",
         "maxzoom": 15,
+    },
+    # Requested by the maintainer. Google's terms restrict direct tile access outside the Maps
+    # APIs; the tiles may be blocked or the option may have to be removed.
+    "hybrid": {
+        "name": "Satellite hybrid (Google)",
+        "tiles": [f"https://mt{i}.google.com/vt/lyrs=y&x={{x}}&y={{y}}&z={{z}}" for i in range(4)],
+        "attribution": "Imagery © Google",
+        "maxzoom": 20,
     },
 }
 VECTOR = {

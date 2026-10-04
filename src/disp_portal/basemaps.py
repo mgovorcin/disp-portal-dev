@@ -35,6 +35,13 @@ BASEMAPS: dict[str, dict] = {
         "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
         "background": "#f2efe9",
     },
+    "sentinel2": {
+        "name": "Satellite (Sentinel-2 cloudless 2023, EOX)",
+        "maxzoom": 15,
+        "attribution": "Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023)",
+        "tiles": ["https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg"],
+        "background": "#000000",
+    },
     "satellite": {
         "name": "Satellite (Google)",
         "maxzoom": 20,
